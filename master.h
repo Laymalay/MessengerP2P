@@ -4,11 +4,14 @@
 #include <QWidget>
 #include <QFile>
 #include <QDebug>
-#include<QMap>
-#include<QTcpSocket>
-#include<QTcpServer>
-#include<QMessageBox>
-#include<QTime>
+#include <QMap>
+#include <QTcpSocket>
+#include <QTcpServer>
+#include <QMessageBox>
+#include <QTime>
+#include <QThread>
+#include <QApplication>
+
 
 namespace Ui {
 class master;
@@ -21,20 +24,20 @@ class Master : public QWidget
 public:
     explicit Master(QWidget *parent = 0);
     ~Master();
-
-private:
-    quint16 m_nNextBlockSize;
     QStringList* listOfPorts;
     QString thisPort;
+    QMap<int,QTcpSocket*>* portMap;
+
+private:
+    quint16 m_nNextBlockSize;  
     QTcpServer* server;
     QTcpSocket* socket;
-    QMap<int,QTcpSocket*>* portMap;
     Ui::master *ui;
 
 private:
     void sendMsgToSocket(QTcpSocket* pSocket, const QString& str);
+    void startConnection();
 private slots:
-    void slotStartConnection();
     void slotNewConnection();
     void slotReadSocket();
 

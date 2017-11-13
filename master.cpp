@@ -1,5 +1,8 @@
+
 #include "master.h"
 #include "ui_master.h"
+#include "worker.h"
+
 
 Master::Master(QWidget *parent) :
     QWidget(parent),
@@ -29,46 +32,71 @@ Master::Master(QWidget *parent) :
         }
         ui->portBox->addItems(*listOfPorts);
         connect(ui->startbtn, SIGNAL(clicked()),this, SLOT(slotStartServer()));
-        connect(ui->connectbtn, SIGNAL(clicked()),this, SLOT(slotStartConnection()));
+//        connect(ui->connectbtn, SIGNAL(clicked()),this, SLOT(slotStartConnection()));
 }
 
 
 
 void Master::slotStartServer()
 {
-    thisPort = ui->portBox->currentText();
-    qDebug()<<thisPort;
 
+    thisPort = ui->portBox->currentText();
+    qDebug()<<"server: "+thisPort;
+    ui->info->append("server "+ thisPort + " has started");
 
     if(!server->listen(QHostAddress::Any, thisPort.toInt())){
-        QMessageBox::critical(0,"server error","unable to start the server:"+server->errorString());
+        QMessageBox::critical(0,"server error",
+                              "unable to start the server:"+server->errorString());
         server->close();
         return;
     }
     connect(server, SIGNAL(newConnection()),this,SLOT(slotNewConnection()));
+
+    qRegisterMetaType<QAbstractSocket::SocketError>("QAbstractSocket::SocketError");
+    QThread* thread = new QThread;
+    Worker* worker = new Worker(this);
+    QObject::connect(thread, &QThread::started, worker, &Worker::process);
+    QObject::connect(worker, &Worker::finished, thread, &QThread::quit);
+    QObject::connect(worker, &Worker::finished, worker, &Worker::deleteLater);
+    QObject::connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    worker->moveToThread(thread);
+    thread->moveToThread(thread);
+    thread->start();
+//    QStringList *notConnectedYet = this->listOfPorts;
+//    notConnectedYet->removeAt(notConnectedYet->indexOf(this->thisPort));
+//    for(;;){
+//      for (int i=0;i<notConnectedYet->size();i++){
+//              QTime timer;
+//              timer.start();
+//              QTcpSocket* socket = new QTcpSocket();
+//              //socket->moveToThread(mainThread);
+//              socket->connectToHost("localhost",(notConnectedYet->at(i)).toInt());
+//              connect(socket, SIGNAL(connected()),this, SLOT(slotConnected()));
+//              connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadyRead()));
+//              connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
+//                      this, SLOT(slotError(QAbstractSocket::SocketError)));
+//              if(socket->waitForConnected(500000)){
+//                  qDebug()<<this->thisPort+"+"+notConnectedYet->at(i)<< "Connected in"<<timer.elapsed();
+//                  qDebug()<<socket->state();
+//                  this->portMap->insert((notConnectedYet->at(i)).toInt(),socket);
+//                  notConnectedYet->removeAt(i);
+//              }
+//              else{
+//                  socket->deleteLater();
+//                  qDebug()<<this->thisPort+"+"+notConnectedYet->at(i)<< "Not connected in"<<timer.elapsed();
+//              }
+
+//         }
+//      QThread::sleep(5);
+//      if (notConnectedYet->size()==0){
+//          qDebug()<<"finished";
+//          break;
+//      }
+//    }
+
 }
 
-void Master::slotStartConnection()
-{
-      for (int i=0;i<listOfPorts->size();i++){
-          if(listOfPorts->at(i)!=thisPort){
-              qDebug()<<listOfPorts->at(i);
-              QTime timer;
-              timer.start();
-              QTcpSocket* socket = new QTcpSocket();
-              socket->connectToHost("localhost",(listOfPorts->at(i)).toInt());
-              portMap->insert((listOfPorts->at(i)).toInt(),socket);
-              connect(socket, SIGNAL(connected()),this, SLOT(slotConnected()));
-              connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadyRead()));
-              connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),this, SLOT(slotError(QAbstractSocket::SocketError)));
-              if(socket->waitForConnected(30000)) {
-                  qDebug() << listOfPorts->at(i) << "-- Connected in" << timer.elapsed();
-              } else {
-                  qDebug() << listOfPorts->at(i) << "-- NOT Connected in" << timer.elapsed();;
-              }
-          }
-      }
-}
+
 
 void Master::sendMsgToSocket(QTcpSocket* pSocket, const QString& str)
 {
@@ -82,10 +110,16 @@ void Master::sendMsgToSocket(QTcpSocket* pSocket, const QString& str)
 }
 
 void Master::slotNewConnection() {
+    qDebug()<<"NEW CONNECTION";
+    for(auto e : portMap->toStdMap())
+    {
+      qDebug()<< e.first << "," << e.second;
+    }
     QTcpSocket* socket = server->nextPendingConnection();
+    qDebug()<<socket<<socket->peerPort();
     connect(socket, SIGNAL(disconnected()),socket, SLOT(deleteLater()));
     connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadSocket()));
-    sendMsgToSocket(socket, "Response: Connected!"+thisPort);
+    sendMsgToSocket(socket, "Response: Connected! " + thisPort);
 }
 
 void Master::slotReadSocket()
@@ -113,12 +147,15 @@ void Master::slotReadSocket()
 }
 void Master::slotConnected()
 {
+    QTcpSocket* socket = (QTcpSocket*)sender();
+    qDebug()<<socket->peerPort();
+    qDebug()<<"Received the connected() signal   ";
     ui->info->append("Received the connected() signal");
 }
 
 void Master::slotReadyRead()
 {
-    QTcpSocket* socket = (QTcpSocket*)sender();
+   QTcpSocket* socket = (QTcpSocket*)sender();
     QDataStream in(socket);
     in.setVersion(QDataStream::Qt_5_3);
     for(;;){

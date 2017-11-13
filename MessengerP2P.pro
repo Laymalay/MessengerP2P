@@ -25,10 +25,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        master.cpp
+        master.cpp \
+    worker.cpp
 
 HEADERS += \
-        master.h
+        master.h \
+    worker.h
 
 FORMS += \
         master.ui
