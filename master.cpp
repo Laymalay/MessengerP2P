@@ -40,12 +40,14 @@ void Master::slotStartServer()
     qDebug()<<thisPort;
 
 
+
     if(!server->listen(QHostAddress::Any, thisPort.toInt())){
         QMessageBox::critical(0,"server error","unable to start the server:"+server->errorString());
         server->close();
         return;
     }
     connect(server, SIGNAL(newConnection()),this,SLOT(slotNewConnection()));
+    ui->info->append("Start server at port " + thisPort);
 }
 
 void Master::slotStartConnection()
@@ -57,15 +59,18 @@ void Master::slotStartConnection()
               timer.start();
               QTcpSocket* socket = new QTcpSocket();
               socket->connectToHost("localhost",(listOfPorts->at(i)).toInt());
+              qDebug()<<socket->state();
+              //check if connection established (socket conected state )
               portMap->insert((listOfPorts->at(i)).toInt(),socket);
               connect(socket, SIGNAL(connected()),this, SLOT(slotConnected()));
               connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadyRead()));
               connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),this, SLOT(slotError(QAbstractSocket::SocketError)));
               if(socket->waitForConnected(30000)) {
-                  qDebug() << listOfPorts->at(i) << "-- Connected in" << timer.elapsed();
+                  qDebug() << listOfPorts->at(i) << " Connected in" << timer.elapsed();
               } else {
-                  qDebug() << listOfPorts->at(i) << "-- NOT Connected in" << timer.elapsed();;
+                  qDebug() << listOfPorts->at(i) << " NOT Connected in" << timer.elapsed();;
               }
+              qDebug()<<socket->state();
           }
       }
 }
@@ -82,7 +87,11 @@ void Master::sendMsgToSocket(QTcpSocket* pSocket, const QString& str)
 }
 
 void Master::slotNewConnection() {
+    for(auto e: portMap->toStdMap()){
+        qDebug()<<e.first<<" "<<e.second;
+    }
     QTcpSocket* socket = server->nextPendingConnection();
+    qDebug()<<socket<<socket->peerPort();
     connect(socket, SIGNAL(disconnected()),socket, SLOT(deleteLater()));
     connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadSocket()));
     sendMsgToSocket(socket, "Response: Connected!"+thisPort);
