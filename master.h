@@ -24,26 +24,15 @@ class Master : public QWidget
 public:
     explicit Master(QWidget *parent = 0);
     ~Master();
-    QStringList* listOfPorts;
-    QString thisPort;
-    QMap<int,QTcpSocket*>* portMap;
-
 private:
-    quint16 m_nNextBlockSize;  
-    QTcpServer* server;
-    QTcpSocket* socket;
-    Ui::master *ui;
+     QStringList* listOfPorts;
+     Ui::master *ui;
+public slots:
+     void slotGetInfoMessage(QString txt);
 
-private:
-    void sendMsgToSocket(QTcpSocket* pSocket, const QString& str);
-    void startConnection();
+signals:
+    void signalStartServer(QStringList *listOfPorts,QString *thisPort);
 private slots:
-    void slotNewConnection();
-    void slotReadSocket();
-
-    void slotConnected();
-    void slotReadyRead();
-    void slotError(QAbstractSocket::SocketError);
     void slotStartServer();
 };
 
