@@ -40,7 +40,7 @@ void Master::slotGetInfoMessage(QString txt)
 void Master::slotStartServer()
 {
     QString thisPort = ui->portBox->currentText();
-    emit signalStartServer(listOfPorts,&thisPort);
+    emit signalStartServer(listOfPorts,thisPort);
 }
 
 Master::~Master()

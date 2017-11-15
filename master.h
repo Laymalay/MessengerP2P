@@ -31,7 +31,7 @@ public slots:
      void slotGetInfoMessage(QString txt);
 
 signals:
-    void signalStartServer(QStringList *listOfPorts,QString *thisPort);
+    void signalStartServer(QStringList *listOfPorts,QString thisPort);
 private slots:
     void slotStartServer();
 };

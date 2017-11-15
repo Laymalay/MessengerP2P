@@ -17,17 +17,17 @@ void Worker::process(){
     connect(timer, SIGNAL(timeout()), this, SLOT(slotLookUpNewConnections()));
 }
 
-void Worker::slotStartServer(QStringList *_listOfPorts, QString *_thisPort)
+void Worker::slotStartServer(QStringList *_listOfPorts, QString _thisPort)
 {
 
     this->listOfPorts = _listOfPorts;
     this->thisPort = _thisPort;
     this->notConnectedYet = listOfPorts;
-    notConnectedYet->removeAt(notConnectedYet->indexOf(*thisPort));
-    qDebug()<<"server: "+*thisPort;
-    emit sendInfoMessage("server "+ *thisPort + " has started");
+    notConnectedYet->removeAt(notConnectedYet->indexOf(thisPort));
+    qDebug()<<"server: "+thisPort;
+    emit sendInfoMessage("server "+ thisPort + " has started");
 
-    if(!server->listen(QHostAddress::Any, thisPort->toInt())){
+    if(!server->listen(QHostAddress::Any, thisPort.toInt())){
         QMessageBox::critical(0,"server error",
                               "unable to start the server:"+server->errorString());
         server->close();
@@ -51,16 +51,10 @@ void Worker::sendMsgToSocket(QTcpSocket* pSocket, const QString& str)
 
 void Worker::slotNewConnection() {
     qDebug()<<"NEW CONNECTION";
-//    for(auto e : portMap->toStdMap())
-//    {
-//      qDebug()<< e.first << "," << e.second;
-//    }
-//    QTcpSocket* socket = server->nextPendingConnection();
-//    qDebug()<<socket<<socket->peerPort();
     QTcpSocket* socket = server->nextPendingConnection();
     connect(socket, SIGNAL(disconnected()),socket, SLOT(deleteLater()));
     connect(socket, SIGNAL(readyRead()),this, SLOT(slotReadSocket()));
-    sendMsgToSocket(socket, "Response: Connected! " + *thisPort);
+    sendMsgToSocket(socket, "Response: Connected! " + thisPort);
 }
 
 void Worker::slotReadSocket()
@@ -148,7 +142,7 @@ void Worker::slotLookUpNewConnections(){
                   this, SLOT(slotError(QAbstractSocket::SocketError)));
           socket->connectToHost("localhost",(notConnectedYet->at(i)).toInt());
           if(socket->waitForConnected(500000)){
-              qDebug()<<*thisPort+"+"+notConnectedYet->at(i)<< "Connected in"<<timer.elapsed();
+              qDebug()<<thisPort+"+"+notConnectedYet->at(i)<< "Connected in"<<timer.elapsed();
               portMap->insert((notConnectedYet->at(i)).toInt(),socket);
               notConnectedYet->removeAt(i);
           }
@@ -158,7 +152,7 @@ void Worker::slotLookUpNewConnections(){
               disconnect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
                       this, SLOT(slotError(QAbstractSocket::SocketError)));
               socket->deleteLater();
-              qDebug()<<*thisPort+"+"+notConnectedYet->at(i)<< "Not connected in"<<timer.elapsed();
+              qDebug()<<thisPort+"+"+notConnectedYet->at(i)<< "Not connected in"<<timer.elapsed();
           }
      }
 }

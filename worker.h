@@ -12,11 +12,11 @@ public:
      explicit Worker(QObject* parent = 0);
     ~Worker(); 
     QStringList* listOfPorts;
-    QString* thisPort;
+    QString thisPort;
     QMap<int,QTcpSocket*>* portMap;
 public slots:
     void process();
-    void slotStartServer(QStringList *listOfPorts, QString *thisPort);
+    void slotStartServer(QStringList *listOfPorts, QString thisPort);
 
 signals:
     void finished();
